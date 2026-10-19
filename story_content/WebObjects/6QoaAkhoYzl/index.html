@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Simulasi Membandingkan Rasio (Mobil 3D)</title>
+
+    <!-- Load Stylesheets -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400">  
+    <link rel="stylesheet" href="font-awesome-4.5.0/css/font-awesome.min.css">                
+    <link rel="stylesheet" href="css/bootstrap.min.css">                                      
+    <link rel="stylesheet" href="css/templatemo-style.css">                                   
+
+    <style>
+        /* Kanvas tetap 960 x 540, lalu diskalakan agar muat di layar */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .storyline-container {
+            width: 960px;
+            height: 540px;
+            box-sizing: border-box;
+            padding: 10px 15px;
+            flex: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transform-origin: center center;
+        }
+
+        .storyline-container > .row {
+            flex: 0 0 auto;
+            margin-left: -15px;
+            margin-right: -15px;
+        }
+
+        /* Baris panel kontrol mengisi ruang tersisa tanpa mendorong tombol keluar kanvas. */
+        .storyline-container > .row:nth-child(3) {
+            flex: 1 1 auto;
+            min-height: 0;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+
+        .storyline-container > .row:nth-child(3) > [class*="col-"] {
+            min-height: 0;
+        }
+
+        /* Membuat panel kontrol tetap rapi dalam kanvas 960 x 540 */
+        .storyline-container .control-panel {
+            box-sizing: border-box;
+            padding: 8px 14px;
+        }
+
+        .storyline-container > .row:nth-child(3) .control-panel {
+            height: 100%;
+        }
+
+        .storyline-container > .row:last-child .control-panel {
+            height: auto;
+        }
+
+        .storyline-container .track-container {
+            margin-bottom: 0;
+            padding-top: 6px;
+            padding-bottom: 6px;
+        }
+
+        .storyline-container .road {
+            height: 48px;
+            margin: 3px 0;
+        }
+
+        .storyline-container .info-badge {
+            padding: 4px 12px;
+            margin-bottom: 6px;
+        }
+
+        .storyline-container .form-group {
+            margin-bottom: 4px;
+        }
+
+        /* Latar khusus untuk informasi laju agar terbaca jelas */
+        .storyline-container .laju-display {
+            display: block;
+            box-sizing: border-box;
+            background: #f2f2f2;
+            border: 1px solid #dedede;
+            border-radius: 6px;
+            padding: 6px 8px;
+            margin: 4px 0 0;
+            line-height: 1.35;
+        }
+
+        .storyline-container hr {
+            margin-top: 6px;
+            margin-bottom: 6px;
+        }
+
+        .storyline-container .btn {
+            padding: 6px 28px !important;
+            margin-top: 2px !important;
+        }
+
+        .storyline-container > .row:last-child .control-panel {
+            margin-top: 6px !important;
+            padding: 7px 10px !important;
+        }
+
+        .storyline-container > .row:last-child h5 {
+            font-size: 13px;
+            line-height: 1.3;
+        }
+
+        .title-text { color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); margin-bottom: 0; }
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px; border-radius: 10px;
+            color: #333; box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+            height: 100%;
+        }
+
+        /* --- CSS LINTASAN 3D --- */
+        .track-container {
+            background: linear-gradient(to bottom, #555 0%, #333 50%, #222 100%);
+            padding: 10px 0; border-radius: 10px; position: relative; 
+            border: 4px solid #111;
+            box-shadow: inset 0px 10px 20px rgba(0,0,0,0.8), 0px 5px 15px rgba(0,0,0,0.4);
+            margin-bottom: 10px;
+        }
+        
+        .road {
+            position: relative; height: 55px; margin: 5px 0;
+            border-bottom: 2px dashed rgba(255,255,255,0.5);
+        }
+        .road:last-child { border-bottom: none; }
+        
+        .finish-line {
+            position: absolute; right: 10%; top: 0; bottom: 0; width: 15px;
+            background: repeating-linear-gradient(0deg, #fff, #fff 10px, #222 10px, #222 20px);
+            z-index: 1; box-shadow: -5px 0px 10px rgba(0,0,0,0.5);
+        }
+
+        /* --- CSS MOBIL 3D --- */
+        .auto-car {
+            position: absolute; left: 2%; top: 5px;
+            width: 80px; height: 40px;
+            transition: left 3s linear;
+            z-index: 5;
+        }
+
+        /* Bodi Bawah (Chassis) */
+        .auto-car .chassis {
+            position: absolute; bottom: 5px; left: 0;
+            width: 80px; height: 20px;
+            border-radius: 5px 20px 8px 5px;
+            /* Efek bayangan dalam untuk kesan bodi plastik mengkilap/3D */
+            box-shadow: inset 0px 4px 5px rgba(255,255,255,0.6), 
+                        inset 0px -3px 5px rgba(0,0,0,0.4), 
+                        0px 5px 5px rgba(0,0,0,0.5);
+        }
+
+        /* Kabin Atas */
+        .auto-car .cabin {
+            position: absolute; bottom: 24px; left: 15px;
+            width: 45px; height: 16px;
+            border-radius: 15px 15px 0 0;
+            box-shadow: inset 0px 3px 4px rgba(255,255,255,0.7);
+        }
+
+        /* Pewarnaan Gradasi Mobil */
+        .auto-car.red .chassis, .auto-car.red .cabin { 
+            background: linear-gradient(to bottom, #ff6b6b, #c0392b); 
+        }
+        .auto-car.blue .chassis, .auto-car.blue .cabin { 
+            background: linear-gradient(to bottom, #4facfe, #00f2fe); 
+        }
+
+        /* Jendela Kaca */
+        .auto-car .window {
+            position: absolute; bottom: 25px;
+            height: 12px;
+            background: linear-gradient(to bottom, #d4f1f9, #83c6dd);
+            border: 1px solid rgba(0,0,0,0.3);
+        }
+        .auto-car .window-back { left: 20px; width: 15px; border-radius: 8px 0 0 0; }
+        .auto-car .window-front { left: 37px; width: 18px; border-radius: 0 12px 0 0; }
+
+        /* Roda 3D */
+        .auto-car .wheel {
+            position: absolute; bottom: 0;
+            width: 18px; height: 18px;
+            background: radial-gradient(circle, #ccc 30%, #222 40%, #000 100%);
+            border-radius: 50%;
+            box-shadow: 0px 3px 4px rgba(0,0,0,0.6);
+        }
+        .auto-car .wheel-back { left: 10px; }
+        .auto-car .wheel-front { right: 12px; }
+
+        /* Lampu Sorot Depan */
+        .auto-car .headlight {
+            position: absolute; right: 0; bottom: 10px;
+            width: 4px; height: 8px;
+            background: #fff; border-radius: 2px;
+            box-shadow: 6px 0px 15px 4px rgba(255, 255, 150, 0.9); /* Sorot cahaya lampu */
+        }
+
+        /* --- Panel & Form Custom --- */
+        .info-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; color: white; font-weight: bold; margin-bottom: 10px; }
+        .badge-red { background-color: #c0392b; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .badge-blue { background-color: #008CBA; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .form-control { height: auto; }
+        hr { margin-top: 10px; margin-bottom: 10px; border-top: 1px solid #ccc;}
+
+        /* ===== Tata letak ringkas: kanvas logis selalu 960 × 540 ===== */
+        * { box-sizing: border-box; }
+        .storyline-container {
+            width: 960px !important;
+            height: 540px !important;
+            padding: 12px 18px !important;
+            justify-content: flex-start !important;
+            gap: 8px;
+            overflow: hidden;
+            transform-origin: center center;
+            font-size: 13px;
+        }
+        .storyline-container > .row {
+            flex: 0 0 auto !important;
+            margin: 0 -3px !important;
+            width: calc(100% + 6px);
+        }
+        .storyline-container > .row:first-child { height: 52px; }
+        .storyline-container > .row:nth-child(2) { height: 126px; }
+        .storyline-container > .row:nth-child(3) {
+            height: 190px;
+            min-height: 190px;
+            display: flex;
+            align-items: stretch;
+        }
+        .storyline-container > .row:last-child { height: 116px; }
+        .storyline-container > .row > [class*="col-"] {
+            height: 100%;
+            min-height: 0;
+            padding-left: 6px;
+            padding-right: 6px;
+        }
+        .title-text {
+            font-size: 25px;
+            line-height: 1.15;
+            margin: 0 0 3px;
+        }
+        .storyline-container > .row:first-child p {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.2;
+        }
+        .track-container {
+            height: 126px;
+            padding: 5px 0 !important;
+            margin: 0 !important;
+            border-width: 3px;
+            border-radius: 9px;
+            overflow: hidden;
+        }
+        .road {
+            height: 54px !important;
+            margin: 0 !important;
+        }
+        .auto-car {
+            top: 5px;
+            transform: scale(.88);
+            transform-origin: left top;
+        }
+        .finish-line { right: 7%; width: 12px; }
+        .control-panel {
+            height: 100%;
+            padding: 10px 16px !important;
+            border-radius: 9px;
+            overflow: hidden;
+        }
+        .info-badge {
+            font-size: 12px;
+            line-height: 1.2;
+            padding: 5px 12px !important;
+            margin: 0 0 9px !important;
+        }
+        .storyline-container label {
+            display: block;
+            font-size: 12px;
+            line-height: 1.3;
+            margin: 0 0 3px;
+        }
+        .storyline-container input[type="range"] {
+            display: block;
+            width: 100%;
+            height: 18px;
+            margin: 0;
+            padding: 0;
+        }
+        .storyline-container .form-group { margin-bottom: 7px !important; }
+        .storyline-container hr {
+            margin: 7px 0 !important;
+        }
+        .storyline-container .laju-display {
+            font-size: 13px !important;
+            line-height: 1.3;
+            padding: 7px 8px !important;
+            margin: 0 !important;
+            white-space: nowrap;
+        }
+        .storyline-container .laju-display span {
+            font-size: 17px !important;
+        }
+        .storyline-container > .row:last-child .col-xs-12 {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 7px;
+        }
+        .storyline-container .btn,
+        .storyline-container button.btn {
+            font-size: 13px;
+            line-height: 1.2;
+            padding: 8px 24px !important;
+            margin: 0 !important;
+            border-radius: 24px;
+        }
+        .storyline-container > .row:last-child .control-panel {
+            flex: 1 1 auto;
+            width: 100%;
+            min-height: 0;
+            height: auto;
+            margin: 0 !important;
+            padding: 9px 12px !important;
+            border-left-width: 4px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .storyline-container > .row:last-child h5 {
+            font-size: 12px;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+            text-align: center;
+        }
+        @media (max-width: 960px), (max-height: 540px) {
+            html, body { overflow: hidden; }
+        }
+
+    </style>
+</head>
+
+<body class="tm-bg-img-content">
+
+    <div class="storyline-container">
+        
+        <div class="row">
+            <div class="col-xs-12 text-xs-center">
+                <h2 class="title-text">Membandingkan Rasio</h2>
+                <p style="color: white; text-shadow: 1px 1px 3px #000;">Mengamati Laju Perubahan Jarak terhadap Waktu</p>
+            </div>
+        </div>
+
+        <!-- Animasi Lintasan Mobil -->
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="track-container">
+                    <div class="finish-line"></div>
+                    
+                    <!-- Mobil Merah 3D -->
+                    <div class="road">
+                        <div id="carA" class="auto-car red">
+                            <div class="cabin"></div>
+                            <div class="window window-back"></div>
+                            <div class="window window-front"></div>
+                            <div class="chassis"></div>
+                            <div class="headlight"></div>
+                            <div class="wheel wheel-back"></div>
+                            <div class="wheel wheel-front"></div>
+                        </div>
+                    </div>
+
+                    <!-- Mobil Biru 3D -->
+                    <div class="road">
+                        <div id="carB" class="auto-car blue">
+                            <div class="cabin"></div>
+                            <div class="window window-back"></div>
+                            <div class="window window-front"></div>
+                            <div class="chassis"></div>
+                            <div class="headlight"></div>
+                            <div class="wheel wheel-back"></div>
+                            <div class="wheel wheel-front"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Kontrol -->
+        <div class="row" style="flex-grow: 1; display: flex; align-items: stretch;">
+            <!-- Panel Merah -->
+            <div class="col-xs-6 text-xs-center">
+                <div class="control-panel">
+                    <div class="info-badge badge-red">Mobil Merah</div>
+                    
+                    <div class="form-group text-xs-left" style="margin-bottom: 5px;">
+                        <label style="margin-bottom: 0;">Jarak: <span id="valJarakA" style="font-weight:bold; color: #d9534f;">60</span> km</label>
+                        <input type="range" id="jarakA" min="10" max="120" step="10" value="60" class="form-control" oninput="updateMobil('JarakA')">
+                    </div>
+                    
+                    <div class="form-group text-xs-left" style="margin-bottom: 5px;">
+                        <label style="margin-bottom: 0;">Waktu: <span id="valWaktuA" style="font-weight:bold; color: #d9534f;">2</span> jam</label>
+                        <input type="range" id="waktuA" min="1" max="6" step="1" value="2" class="form-control" oninput="updateMobil('WaktuA')">
+                    </div>
+                    <hr>
+                    <h5 class="laju-display" style="margin: 0;">Laju = <span id="lajuA" style="color:#d9534f; font-weight:bold; font-size: 1.4rem;">?</span> km/jam</h5>
+                </div>
+            </div>
+
+            <!-- Panel Biru -->
+            <div class="col-xs-6 text-xs-center">
+                <div class="control-panel">
+                    <div class="info-badge badge-blue">Mobil Biru</div>
+                    
+                    <div class="form-group text-xs-left" style="margin-bottom: 5px;">
+                        <label style="margin-bottom: 0;">Jarak: <span id="valJarakB" style="font-weight:bold; color: #5bc0de;">80</span> km</label>
+                        <input type="range" id="jarakB" min="10" max="120" step="10" value="80" class="form-control" oninput="updateMobil('JarakB')">
+                    </div>
+                    
+                    <div class="form-group text-xs-left" style="margin-bottom: 5px;">
+                        <label style="margin-bottom: 0;">Waktu: <span id="valWaktuB" style="font-weight:bold; color: #5bc0de;">4</span> jam</label>
+                        <input type="range" id="waktuB" min="1" max="6" step="1" value="4" class="form-control" oninput="updateMobil('WaktuB')">
+                    </div>
+                    <hr>
+                    <h5 class="laju-display" style="margin: 0;">Laju = <span id="lajuB" style="color:#5bc0de; font-weight:bold; font-size: 1.4rem;">?</span> km/jam</h5>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tombol Eksekusi -->
+        <div class="row">
+            <div class="col-xs-12 text-xs-center">
+                <button onclick="mulaiSimulasi()" class="btn btn-success btn-lg" style="padding: 10px 40px; font-weight: bold; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-top: 5px;">
+                    <i class="fa fa-play"></i> Mulai Perjalanan
+                </button>
+                
+                <div class="control-panel" style="margin-top: 10px; padding: 10px; border-left: 5px solid #5cb85c;">
+                    <h5 id="kesimpulanMobil" style="margin: 0;">Tentukan jarak dan waktu tempuh, lalu klik Mulai.</h5>
+                </div>
+            </div>
+        </div>
+
+    </div>                
+        
+    <!-- JS Logic -->
+    <script>
+        function updateMobil(id) {
+            let val = document.getElementById(id.charAt(0).toLowerCase() + id.slice(1)).value;
+            document.getElementById('val' + id).innerText = val;
+            
+            document.getElementById('carA').style.left = '2%';
+            document.getElementById('carB').style.left = '2%';
+            
+            document.getElementById('lajuA').innerText = "?";
+            document.getElementById('lajuB').innerText = "?";
+            document.getElementById('kesimpulanMobil').innerHTML = "Tentukan jarak dan waktu tempuh, lalu klik Mulai.";
+        }
+
+        function mulaiSimulasi() {
+            let jarakA = parseInt(document.getElementById('jarakA').value);
+            let waktuA = parseInt(document.getElementById('waktuA').value);
+            let lajuA = jarakA / waktuA; 
+
+            let jarakB = parseInt(document.getElementById('jarakB').value);
+            let waktuB = parseInt(document.getElementById('waktuB').value);
+            let lajuB = jarakB / waktuB; 
+
+            document.getElementById('lajuA').innerText = lajuA.toFixed(1);
+            document.getElementById('lajuB').innerText = lajuB.toFixed(1);
+
+            let maxLaju = Math.max(lajuA, lajuB);
+            let targetA = (lajuA / maxLaju) * 85; 
+            let targetB = (lajuB / maxLaju) * 85;
+
+            document.getElementById('carA').style.left = targetA + '%';
+            document.getElementById('carB').style.left = targetB + '%';
+
+            let kesimpulan = document.getElementById('kesimpulanMobil');
+            if (lajuA === lajuB) {
+                kesimpulan.innerHTML = `Laju kedua mobil <strong>SAMA CEPAT</strong> (${lajuA.toFixed(1)} km/jam). Rasio Jarak terhadap Waktu adalah Ekuivalen.`;
+            } else if (lajuA > lajuB) {
+                kesimpulan.innerHTML = `<strong>MOBIL MERAH LEBIH CEPAT</strong>. Proporsi jarak tempuhnya lebih besar dalam satu satuan waktu.`;
+            } else {
+                kesimpulan.innerHTML = `<strong>MOBIL BIRU LEBIH CEPAT</strong>. Proporsi jarak tempuhnya lebih besar dalam satu satuan waktu.`;
+            }
+        }
+
+        // Menyesuaikan kanvas 960 x 540 agar seluruh tampilan muat di layar.
+        function sesuaikanUkuran() {
+            const container = document.querySelector('.storyline-container');
+            const skala = Math.min(
+                window.innerWidth / 960,
+                window.innerHeight / 540
+            );
+            container.style.transform = `scale(${skala})`;
+        }
+
+        window.addEventListener('resize', sesuaikanUkuran);
+        sesuaikanUkuran();
+    </script>             
+</body>
+</html>

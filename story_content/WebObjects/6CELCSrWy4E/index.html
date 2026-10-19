@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Simulasi Rasio & Jumlah (Diagram Kotak)</title>
+
+    <!-- Load Stylesheets (Template Rainbow) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400">  
+    <link rel="stylesheet" href="font-awesome-4.5.0/css/font-awesome.min.css">                
+    <link rel="stylesheet" href="css/bootstrap.min.css">                                    
+    <link rel="stylesheet" href="css/templatemo-style.css">                                 
+
+    <style>
+        /* Mengunci Layar 16:9 */
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100vh; 
+            overflow: hidden; 
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .storyline-container {
+            width: 100%; max-width: 1200px; height: 95%; 
+            display: flex; flex-direction: column; justify-content: space-evenly; 
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px; border-radius: 10px;
+            color: #333; box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .title-text { color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); margin-bottom: 0; }
+        .form-control { height: auto; }
+
+        /* --- STYLES INDIKATOR STATUS RASIO --- */
+        .ratio-badge {
+            display: none;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .badge-equal {
+            background-color: #5cb85c;
+            color: white;
+            box-shadow: 0 2px 6px rgba(92, 184, 92, 0.4);
+        }
+        .badge-error {
+            background-color: #d9534f;
+            color: white;
+            box-shadow: 0 2px 6px rgba(217, 83, 79, 0.4);
+        }
+
+        /* --- DIAGRAM KOTAK (BAR MODEL) --- */
+        .box-section {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px dashed #ccc;
+        }
+
+        .box-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            min-height: 50px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+
+        .unit-box {
+            width: 46px;
+            height: 46px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: white;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, background-color 0.3s ease, opacity 0.3s ease;
+        }
+
+        .box-laki {
+            background-color: #5bc0de;
+            border: 2px solid #31b0d5;
+        }
+
+        .box-perempuan {
+            background-color: #d9534f;
+            border: 2px solid #c9302c;
+        }
+
+        .unit-box.filled {
+            transform: scale(1.06);
+        }
+
+        .unit-box.invalid {
+            background-color: #95a5a6;
+            border-color: #7f8c8d;
+            opacity: 0.7;
+        }
+
+        .total-input-box {
+            background: #fff8e5;
+            border: 2px solid #f0ad4e;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 12px;
+        }
+
+        /* Kanvas tetap 960 x 540; seluruh kanvas diskalakan proporsional */
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            overflow: hidden !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        .storyline-container {
+            width: 960px !important;
+            min-width: 960px !important;
+            max-width: 960px !important;
+            height: 540px !important;
+            min-height: 540px !important;
+            max-height: 540px !important;
+            padding: 10px 14px;
+            margin: 0;
+            flex: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            transform-origin: center center;
+            overflow: hidden;
+        }
+
+        .storyline-container > .row {
+            float: none;
+            flex: 0 0 auto;
+            margin-left: -7px;
+            margin-right: -7px;
+            width: calc(100% + 14px);
+        }
+
+        /* Judul */
+        .storyline-container > .row:first-child {
+            height: 64px;
+            min-height: 64px;
+            text-align: center;
+        }
+        .storyline-container > .row:first-child h2 {
+            font-size: 25px;
+            line-height: 1.2;
+            margin: 2px 0 3px;
+        }
+        .storyline-container > .row:first-child p {
+            font-size: 13px;
+            line-height: 1.25;
+            margin: 0;
+        }
+
+        /* Area pengaturan dan diagram: dua kolom sejajar */
+        .storyline-container > .row:nth-child(2) {
+            display: flex;
+            flex: 1 1 auto;
+            min-height: 0;
+            align-items: stretch;
+            margin-top: 4px;
+            margin-bottom: 7px;
+        }
+        .storyline-container > .row:nth-child(2) > [class*="col-"] {
+            float: none;
+            min-height: 0;
+            height: 100%;
+            padding-left: 7px;
+            padding-right: 7px;
+        }
+        .storyline-container > .row:nth-child(2) > .col-sm-5 {
+            width: 39%;
+            flex: 0 0 39%;
+        }
+        .storyline-container > .row:nth-child(2) > .col-sm-7 {
+            width: 61%;
+            flex: 0 0 61%;
+        }
+
+        .storyline-container .control-panel {
+            height: 100%;
+            min-height: 0;
+            padding: 10px 12px;
+            border-radius: 9px;
+            overflow: hidden;
+        }
+        .storyline-container h4 {
+            font-size: 15px;
+            line-height: 1.2;
+            margin-top: 0;
+            margin-bottom: 8px !important;
+        }
+
+        /* Pengaturan rasio dan jumlah */
+        .storyline-container > .row:nth-child(2) > .col-sm-5 .control-panel > div {
+            font-size: 12px !important;
+            line-height: 1.25;
+        }
+        .storyline-container label {
+            font-size: 12px;
+            line-height: 1.25;
+        }
+        .storyline-container input[type="range"] {
+            height: 20px;
+            margin: 2px 0 5px;
+            padding: 0;
+        }
+        .storyline-container .total-input-box {
+            margin-top: 8px;
+            padding: 7px 9px;
+        }
+        .storyline-container .total-input-box label {
+            display: block;
+            margin-bottom: 4px !important;
+        }
+        .storyline-container #totalSiswa {
+            height: 30px;
+            padding: 4px 8px;
+            font-size: 14px !important;
+        }
+
+        /* Diagram kotak: ukuran lebih ringkas supaya seluruh kotak terlihat */
+        .storyline-container .box-section {
+            margin: 6px 0;
+            padding: 7px 8px;
+        }
+        .storyline-container .box-section > div:first-child {
+            font-size: 11px !important;
+            line-height: 1.25;
+            min-height: 17px;
+        }
+        .storyline-container .box-row {
+            gap: 6px;
+            min-height: 39px;
+            margin-top: 4px;
+            flex-wrap: nowrap;
+        }
+        .storyline-container .unit-box {
+            width: 38px;
+            min-width: 0;
+            height: 38px;
+            flex: 0 1 38px;
+            font-size: 13px;
+            border-radius: 6px;
+        }
+        .storyline-container .unit-box.filled {
+            transform: none;
+        }
+        .storyline-container .ratio-badge {
+            font-size: 10px;
+            line-height: 1.2;
+            padding: 4px 7px;
+            margin: 0 0 3px 8px;
+            max-width: 100%;
+        }
+
+        /* Tombol dan kesimpulan mendapat area tetap di bagian bawah */
+        .storyline-container > .row:last-child {
+            flex: 0 0 112px;
+            height: 112px;
+            min-height: 112px;
+        }
+        .storyline-container > .row:last-child > .col-xs-12 {
+            padding: 0 7px;
+        }
+        .storyline-container > .row:last-child .btn {
+            padding: 7px 24px !important;
+            margin: 0 !important;
+            font-size: 14px;
+            line-height: 1.25;
+        }
+        .storyline-container #panelKesimpulan {
+            height: 62px;
+            min-height: 62px;
+            margin-top: 7px !important;
+            padding: 7px 10px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .storyline-container #kesimpulanKotak {
+            width: 100%;
+            margin: 0;
+            font-size: 11.5px;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+
+
+    </style>
+</head>
+
+<body class="tm-bg-img-content">
+
+    <div class="storyline-container">
+        
+        <!-- Baris 1: Judul Aktivitas -->
+        <div class="row">
+            <div class="col-xs-12 text-xs-center">
+                <h2 class="title-text">Menentukan Nilai dari Rasio & Jumlah</h2>
+                <p style="color: white; text-shadow: 1px 1px 3px #000;">Eksplorasi Diagram Kotak Siswa di Kelas</p>
+            </div>
+        </div>
+
+        <!-- Baris 2: Kolom Pengaturan & Visualisasi Kotak -->
+        <div class="row">
+            <!-- Kolom Kiri: Slider Pengaturan -->
+            <div class="col-xs-12 col-sm-5">
+                <div class="control-panel">
+                    <h4 style="margin-bottom: 12px; color: #333; text-align: center;">Pengaturan Data Kelas</h4>
+                    
+                    <div style="text-align: left; font-size: 0.9rem;">
+                        <label style="margin-bottom: 0; color: #31b0d5;">
+                            Rasio Laki-laki: <span id="valRasioL" style="font-weight: bold;">2</span> bagian (kotak)
+                        </label>
+                        <input type="range" id="rasioL" min="1" max="6" value="2" class="form-control" oninput="ubahData()">
+                        
+                        <label style="margin-top: 12px; margin-bottom: 0; color: #c9302c;">
+                            Rasio Perempuan: <span id="valRasioP" style="font-weight: bold;">5</span> bagian (kotak)
+                        </label>
+                        <input type="range" id="rasioP" min="1" max="6" value="5" class="form-control" oninput="ubahData()">
+
+                        <div class="total-input-box">
+                            <label style="margin-bottom: 4px; font-weight: bold; color: #d58512;">
+                                Jumlah Seluruh Siswa (Diketahui):
+                            </label>
+                            <input type="number" id="totalSiswa" value="28" min="1" max="200" class="form-control" oninput="ubahData()" style="font-weight: bold; font-size: 1.05rem; text-align: center;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kolom Kanan: Visualisasi Diagram Kotak -->
+            <div class="col-xs-12 col-sm-7">
+                <div class="control-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                        <h4 style="margin-bottom: 5px; color: #333;">Diagram Kotak (<span id="lblTotalKotak">7</span> Kotak)</h4>
+                        <div id="badgeIsi" class="ratio-badge"></div>
+                    </div>
+
+                    <!-- Kotak Laki-laki -->
+                    <div class="box-section">
+                        <div style="font-size: 0.85rem; font-weight: bold; color: #31b0d5;">
+                            Laki-laki (<span id="infoKotakL">2 kotak</span>) <span id="hasilL" style="float: right; color: #333;"></span>
+                        </div>
+                        <div id="wadahKotakL" class="box-row"></div>
+                    </div>
+
+                    <!-- Kotak Perempuan -->
+                    <div class="box-section" style="margin-bottom: 0;">
+                        <div style="font-size: 0.85rem; font-weight: bold; color: #c9302c;">
+                            Perempuan (<span id="infoKotakP">5 kotak</span>) <span id="hasilP" style="float: right; color: #333;"></span>
+                        </div>
+                        <div id="wadahKotakP" class="box-row"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Baris 3: Tombol Aksi & Kesimpulan -->
+        <div class="row">
+            <div class="col-xs-12 text-xs-center">
+                <button onclick="bagiKeKotak()" class="btn btn-warning btn-lg" style="padding: 10px 40px; font-weight: bold; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <i class="fa fa-th-large"></i> Bagi Siswa ke Kotak!
+                </button>
+                
+                <div id="panelKesimpulan" class="control-panel" style="margin-top: 15px; padding: 10px; border-left: 5px solid #f0ad4e;">
+                    <h5 id="kesimpulanKotak" style="margin: 0; line-height: 1.4;">
+                        Atur rasio dan jumlah seluruh siswa, lalu klik <strong>Bagi Siswa ke Kotak!</strong> untuk menemukan jumlah masing-masing siswa.
+                    </h5>
+                </div>
+            </div>
+        </div>
+
+    </div>                
+        
+    <!-- JS Logic -->
+    <script>
+        function gambarKotak(isiKotak, status) {
+            let rL = parseInt(document.getElementById('rasioL').value);
+            let rP = parseInt(document.getElementById('rasioP').value);
+            
+            let wadahL = document.getElementById('wadahKotakL');
+            let wadahP = document.getElementById('wadahKotakP');
+            wadahL.innerHTML = '';
+            wadahP.innerHTML = '';
+
+            let extraClass = '';
+            if (status === 'valid') extraClass = ' filled';
+            if (status === 'invalid') extraClass = ' invalid';
+
+            for (let i = 0; i < rL; i++) {
+                let div = document.createElement('div');
+                div.className = 'unit-box box-laki' + extraClass;
+                div.innerText = isiKotak;
+                wadahL.appendChild(div);
+            }
+
+            for (let j = 0; j < rP; j++) {
+                let div = document.createElement('div');
+                div.className = 'unit-box box-perempuan' + extraClass;
+                div.innerText = isiKotak;
+                wadahP.appendChild(div);
+            }
+        }
+
+        function ubahData() {
+            let rL = parseInt(document.getElementById('rasioL').value);
+            let rP = parseInt(document.getElementById('rasioP').value);
+            let totalKotak = rL + rP;
+
+            document.getElementById('valRasioL').innerText = rL;
+            document.getElementById('valRasioP').innerText = rP;
+            document.getElementById('lblTotalKotak').innerText = totalKotak;
+            document.getElementById('infoKotakL').innerText = rL + ' kotak';
+            document.getElementById('infoKotakP').innerText = rP + ' kotak';
+
+            document.getElementById('hasilL').innerText = '';
+            document.getElementById('hasilP').innerText = '';
+            document.getElementById('badgeIsi').style.display = 'none';
+            
+            let panelKesimpulan = document.getElementById('panelKesimpulan');
+            panelKesimpulan.style.borderLeftColor = '#f0ad4e';
+            document.getElementById('kesimpulanKotak').innerHTML = 
+                "Atur rasio dan jumlah seluruh siswa, lalu klik <strong>Bagi Siswa ke Kotak!</strong> untuk menemukan jumlah masing-masing siswa.";
+
+            gambarKotak('?', 'normal');
+        }
+
+        function bagiKeKotak() {
+            let rL = parseInt(document.getElementById('rasioL').value);
+            let rP = parseInt(document.getElementById('rasioP').value);
+            let totalSiswa = parseInt(document.getElementById('totalSiswa').value);
+            let totalKotak = rL + rP;
+
+            let kesimpulan = document.getElementById('kesimpulanKotak');
+            let panelKesimpulan = document.getElementById('panelKesimpulan');
+            let badgeIsi = document.getElementById('badgeIsi');
+
+            // Validasi 1: Input kosong atau bukan bilangan asli (> 0)
+            if (isNaN(totalSiswa) || totalSiswa <= 0) {
+                badgeIsi.className = "ratio-badge badge-error";
+                badgeIsi.innerHTML = `<i class="fa fa-exclamation-triangle"></i> Jumlah Siswa Tidak Valid`;
+                badgeIsi.style.display = 'inline-block';
+                panelKesimpulan.style.borderLeftColor = '#d9534f';
+                kesimpulan.innerHTML = "Masukkan jumlah seluruh siswa berupa bilangan asli (lebih dari 0).";
+                gambarKotak('!', 'invalid');
+                return;
+            }
+
+            // Validasi 2: Cek apakah habis dibagi (menghasilkan bilangan asli di tiap kotak)
+            if (totalSiswa % totalKotak !== 0) {
+                let hasilKoma = (totalSiswa / totalKotak).toFixed(2).replace('.', ',');
+                let contoh1 = totalKotak * 2;
+                let contoh2 = totalKotak * 3;
+                let contoh3 = totalKotak * 4;
+
+                gambarKotak('!', 'invalid');
+
+                badgeIsi.className = "ratio-badge badge-error";
+                badgeIsi.innerHTML = `<i class="fa fa-times-circle"></i> Tidak Sesuai (${totalSiswa} &divide; ${totalKotak} = ${hasilKoma})`;
+                badgeIsi.style.display = 'inline-block';
+
+                document.getElementById('hasilL').innerHTML = `<span style="color: #d9534f;">Tidak bulat</span>`;
+                document.getElementById('hasilP').innerHTML = `<span style="color: #d9534f;">Tidak bulat</span>`;
+
+                panelKesimpulan.style.borderLeftColor = '#d9534f';
+                kesimpulan.innerHTML = 
+                    `<span style="color: #d9534f;"><strong>Data Tidak Sesuai!</strong></span> Jumlah siswa (<strong>${totalSiswa}</strong>) dibagi <strong>${totalKotak} kotak</strong> menghasilkan <strong>${hasilKoma} siswa/kotak</strong>. ` +
+                    `Karena banyak manusia harus berupa <strong>bilangan bulat (asli)</strong>, ubah rasio atau gunakan jumlah siswa kelipatan <strong>${totalKotak}</strong> (contoh: <strong>${contoh1}, ${contoh2}, ${contoh3}</strong>).`;
+                return;
+            }
+
+            // Jika Valid (Bilangan Bulat/Asli)
+            let isiPerKotak = totalSiswa / totalKotak;
+            let banyakL = rL * isiPerKotak;
+            let banyakP = rP * isiPerKotak;
+
+            gambarKotak(isiPerKotak, 'valid');
+
+            badgeIsi.className = "ratio-badge badge-equal";
+            badgeIsi.innerHTML = `<i class="fa fa-check-circle"></i> Isi 1 Kotak = ${totalSiswa} &divide; ${totalKotak} = ${isiPerKotak} siswa`;
+            badgeIsi.style.display = 'inline-block';
+
+            document.getElementById('hasilL').innerHTML = `Total = <strong>${banyakL} siswa</strong>`;
+            document.getElementById('hasilP').innerHTML = `Total = <strong>${banyakP} siswa</strong>`;
+
+            panelKesimpulan.style.borderLeftColor = '#5cb85c';
+            kesimpulan.innerHTML = 
+                `Karena diketahui <strong>Jumlah Siswa (${totalSiswa})</strong>, kita jumlahkan kotak rasionya: <strong>${rL} + ${rP} = ${totalKotak} kotak</strong>. ` +
+                `Maka <strong>Perempuan</strong> = <strong>(${rP}/${totalKotak}) &times; ${totalSiswa} = ${banyakP} siswa</strong> dan ` +
+                `<strong>Laki-laki</strong> = <strong>(${rL}/${totalKotak}) &times; ${totalSiswa} = ${banyakL} siswa</strong>.`;
+        }
+
+        // Kanvas logis selalu 960 x 540, diskalakan agar seluruh isi tetap terlihat.
+        function sesuaikanKanvas() {
+            const kanvas = document.querySelector('.storyline-container');
+            const skala = Math.min(window.innerWidth / 960, window.innerHeight / 540);
+            kanvas.style.transform = `scale(${skala})`;
+        }
+        window.addEventListener('resize', sesuaikanKanvas);
+        sesuaikanKanvas();
+
+        // Jalankan saat pertama kali dibuka
+        ubahData();
+    </script>             
+</body>
+</html>

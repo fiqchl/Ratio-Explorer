@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Simulasi Membedakan Rasio (Kopi 3D)</title>
+
+    <!-- Load Stylesheets (Template Rainbow) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400">  
+    <link rel="stylesheet" href="font-awesome-4.5.0/css/font-awesome.min.css">                
+    <link rel="stylesheet" href="css/bootstrap.min.css">                                    
+    <link rel="stylesheet" href="css/templatemo-style.css">                                 
+
+    <style>
+        /* Mengunci Layar 16:9 */
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100vh; 
+            overflow: hidden; 
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .storyline-container {
+            width: 100%; max-width: 1200px; height: 95%; 
+            display: flex; flex-direction: column; justify-content: space-evenly; 
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px; border-radius: 10px;
+            color: #333; box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        /* --- STYLES INDIKATOR STATUS RASIO --- */
+        .ratio-badge {
+            display: none;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .badge-equal {
+            background-color: #5cb85c;
+            color: white;
+            box-shadow: 0 2px 6px rgba(92, 184, 92, 0.4);
+        }
+        .badge-higher {
+            background-color: #d9534f;
+            color: white;
+            box-shadow: 0 2px 6px rgba(217, 83, 79, 0.4);
+        }
+        .badge-lower {
+            background-color: #f0ad4e;
+            color: white;
+            box-shadow: 0 2px 6px rgba(240, 173, 78, 0.4);
+        }
+
+        /* --- KODE GELAS 3D DIPERBAIKI --- */
+        .glass-container {
+            position: relative;
+            width: 120px; 
+            margin: 15px auto 25px auto;
+        }
+
+        /* Mulut Gelas */
+        .glass-top {
+            position: absolute;
+            top: -10px; left: 0;
+            width: 120px; height: 20px;
+            border: 3px solid rgba(170, 190, 200, 0.8); 
+            border-radius: 50%;
+            background: rgba(220, 235, 245, 0.5); 
+            box-sizing: border-box; z-index: 2;
+        }
+
+        /* Badan Gelas */
+        .glass {
+            position: relative;
+            width: 120px; height: 160px;
+            background: rgba(200, 225, 240, 0.25); 
+            border: 3px solid rgba(170, 190, 200, 0.8);
+            border-bottom: 12px solid rgba(150, 175, 190, 0.9); 
+            border-top: none;
+            border-radius: 0 0 35px 35px; 
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05), inset 0 5px 15px rgba(0, 0, 0, 0.05);
+            overflow: hidden; 
+            display: flex; align-items: flex-end; 
+        }
+
+        /* Air / Kopi di Dalam Gelas */
+        .water {
+            width: 100%;
+            height: 0%; 
+            background: var(--warna-bawah, transparent); 
+            position: relative;
+            transition: height 1s ease-in-out, background 1s ease-in-out;
+        }
+
+        /* Permukaan Air (Efek Melengkung) */
+        .water::before {
+            content: '';
+            position: absolute;
+            top: -10px; left: 0;
+            width: 100%; height: 20px;
+            background: var(--warna-atas, transparent);
+            border-radius: 50%;
+            opacity: var(--tampil-permukaan, 0); 
+            transition: background 1s ease-in-out, opacity 0.3s;
+        }
+        /* -------------------------------------- */
+
+        .title-text { color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); margin-bottom: 0; }
+        .form-control { height: auto; }
+    </style>
+</head>
+
+<body class="tm-bg-img-content">
+
+    <div class="storyline-container">
+        
+        <!-- Baris 1: Judul Aktivitas -->
+        <div class="row">
+            <div class="col-xs-12 text-xs-center">
+                <h2 class="title-text">Membedakan Rasio & Selisih</h2>
+                <p style="color: white; text-shadow: 1px 1px 3px #000;">Eksperimen Menyeduh Kopi</p>
+            </div>
+        </div>
+
+        <!-- Baris 2: Kolom Simulasi Kopi -->
+        <div class="row">
+            <!-- Gelas A -->
+            <div class="col-xs-12 col-sm-6 text-xs-center">
+                <div class="control-panel">
+                    <h4 style="margin-bottom: 5px; color: #d9534f;">Gelas A</h4>
+                    
+                    <!-- Indikator Status Gelas A -->
+                    <div id="badgeA" class="ratio-badge"></div>
+                    
+                    <div class="glass-container">
+                        <div class="glass-top"></div>
+                        <div class="glass">
+                            <div id="liquidA" class="water" style="--warna-bawah: transparent; --warna-atas: transparent; --tampil-permukaan: 0;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: left; font-size: 0.9rem;">
+                        <label style="margin-bottom: 0;">Kopi: <span id="valKopiA" style="font-weight: bold;">0</span> takar</label>
+                        <input type="range" id="kopiA" min="0" max="20" value="0" class="form-control" oninput="updateKopi('KopiA')">
+                        
+                        <label style="margin-top: 10px; margin-bottom: 0;">Air: <span id="valAirA" style="font-weight: bold;">0</span> takar</label>
+                        <input type="range" id="airA" min="0" max="20" value="0" class="form-control" oninput="updateKopi('AirA')">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gelas B -->
+            <div class="col-xs-12 col-sm-6 text-xs-center">
+                <div class="control-panel">
+                    <h4 style="margin-bottom: 5px; color: #5bc0de;">Gelas B</h4>
+                    
+                    <!-- Indikator Status Gelas B -->
+                    <div id="badgeB" class="ratio-badge"></div>
+                    
+                    <div class="glass-container">
+                        <div class="glass-top"></div>
+                        <div class="glass">
+                            <div id="liquidB" class="water" style="--warna-bawah: transparent; --warna-atas: transparent; --tampil-permukaan: 0;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: left; font-size: 0.9rem;">
+                        <label style="margin-bottom: 0;">Kopi: <span id="valKopiB" style="font-weight: bold;">0</span> takar</label>
+                        <input type="range" id="kopiB" min="0" max="20" value="0" class="form-control" oninput="updateKopi('KopiB')">
+                        
+                        <label style="margin-top: 10px; margin-bottom: 0;">Air: <span id="valAirB" style="font-weight: bold;">0</span> takar</label>
+                        <input type="range" id="airB" min="0" max="20" value="0" class="form-control" oninput="updateKopi('AirB')">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Baris 3: Tombol Aduk & Kesimpulan -->
+        <div class="row">
+            <div class="col-xs-12 text-xs-center">
+                <button onclick="aduk()" class="btn btn-warning btn-lg" style="padding: 10px 40px; font-weight: bold; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <i class="fa fa-flask"></i> Aduk Campuran!
+                </button>
+                
+                <div class="control-panel" style="margin-top: 15px; padding: 10px; border-left: 5px solid #f0ad4e;">
+                    <h5 id="kesimpulanKopi" style="margin: 0;">Atur takaran di kedua gelas, lalu klik Aduk untuk membandingkan pekat warnanya.</h5>
+                </div>
+            </div>
+        </div>
+
+    </div>                
+        
+    <!-- JS Logic -->
+    <script>
+        function updateKopi(id) {
+            let val = document.getElementById(id.charAt(0).toLowerCase() + id.slice(1)).value;
+            document.getElementById('val' + id).innerText = val;
+            document.getElementById('kesimpulanKopi').innerHTML = "Atur takaran di kedua gelas, lalu klik Aduk untuk membandingkan pekat warnanya.";
+            
+            // Sembunyikan indikator saat slider diubah kembali
+            document.getElementById('badgeA').style.display = 'none';
+            document.getElementById('badgeB').style.display = 'none';
+        }
+
+        function setLiquidColor(elementId, kopi, air) {
+            let el = document.getElementById(elementId);
+            let total = kopi + air;
+            let rasio = total === 0 ? 0 : kopi / total;
+            
+            el.style.height = (total / 40 * 90) + '%';
+
+            if (total === 0) {
+                el.style.setProperty('--tampil-permukaan', '0');
+            } else {
+                el.style.setProperty('--tampil-permukaan', '1');
+                
+                if (kopi === 0) {
+                    el.style.setProperty('--warna-bawah', 'rgba(173, 216, 230, 0.4)');
+                    el.style.setProperty('--warna-atas', 'rgba(173, 216, 230, 0.7)');
+                } else {
+                    let t = Math.pow(rasio, 0.75);
+
+                    let minColor = { r: 230, g: 170, b: 90, a: 0.35 }; 
+                    let maxColor = { r: 15, g: 8, b: 5, a: 0.98 }; 
+
+                    let r = Math.round(minColor.r + (maxColor.r - minColor.r) * t);
+                    let g = Math.round(minColor.g + (maxColor.g - minColor.g) * t);
+                    let b = Math.round(minColor.b + (maxColor.b - minColor.b) * t);
+                    let a = (minColor.a + (maxColor.a - minColor.a) * t).toFixed(2);
+
+                    el.style.setProperty('--warna-bawah', `rgba(${r}, ${g}, ${b}, ${a})`);
+                    
+                    let rAtas = Math.min(255, r + Math.round(30 * (1 - t)));
+                    let gAtas = Math.min(255, g + Math.round(20 * (1 - t)));
+                    let bAtas = Math.min(255, b + Math.round(15 * (1 - t)));
+                    let aAtas = Math.min(1.0, parseFloat(a) + 0.15).toFixed(2);
+
+                    el.style.setProperty('--warna-atas', `rgba(${rAtas}, ${gAtas}, ${bAtas}, ${aAtas})`);
+                }
+            }
+            return rasio;
+        }
+
+        function aduk() {
+            let kopiA = parseInt(document.getElementById('kopiA').value);
+            let airA = parseInt(document.getElementById('airA').value);
+            let totalA = kopiA + airA; 
+            
+            let kopiB = parseInt(document.getElementById('kopiB').value);
+            let airB = parseInt(document.getElementById('airB').value);
+            let totalB = kopiB + airB; 
+
+            let rasioA = setLiquidColor('liquidA', kopiA, airA);
+            let rasioB = setLiquidColor('liquidB', kopiB, airB);
+
+            let kesimpulan = document.getElementById('kesimpulanKopi');
+            let badgeA = document.getElementById('badgeA');
+            let badgeB = document.getElementById('badgeB');
+            
+            if (totalA === 0 && totalB === 0) {
+                kesimpulan.innerHTML = "Kedua gelas masih kosong.";
+                badgeA.style.display = 'none';
+                badgeB.style.display = 'none';
+            } else if (totalA === 0 || totalB === 0) {
+                kesimpulan.innerHTML = "Isi kedua gelas untuk mulai membedakan.";
+                badgeA.style.display = 'none';
+                badgeB.style.display = 'none';
+            } else if (kopiA === 0 && kopiB === 0) {
+                kesimpulan.innerHTML = `Hanya air putih di kedua gelas. Tambahkan kopi untuk melihat rasio kepekatan.`;
+                badgeA.style.display = 'none';
+                badgeB.style.display = 'none';
+            } else if (rasioA === rasioB) {
+                kesimpulan.innerHTML = `Warna <strong>SAMA GELAP</strong>. Perbandingan Kopi dan Air pada Gelas A dan B adalah <strong>Rasio Ekuivalen</strong> (senilai).`;
+                
+                // Indikator Rasio Sama
+                badgeA.className = "ratio-badge badge-equal";
+                badgeA.innerHTML = '<i class="fa fa-check-circle"></i> Rasio Ekuivalen (Sama)';
+                badgeA.style.display = 'inline-block';
+
+                badgeB.className = "ratio-badge badge-equal";
+                badgeB.innerHTML = '<i class="fa fa-check-circle"></i> Rasio Ekuivalen (Sama)';
+                badgeB.style.display = 'inline-block';
+            } else if (rasioA > rasioB) {
+                kesimpulan.innerHTML = `Gelas A <strong>LEBIH PEKAT</strong>. Secara relatif, proporsi kopi di Gelas A lebih besar dari Gelas B.`;
+                
+                // Indikator Gelas A Lebih Pekat
+                badgeA.className = "ratio-badge badge-higher";
+                badgeA.innerHTML = '<i class="fa fa-arrow-up"></i> Lebih Pekat';
+                badgeA.style.display = 'inline-block';
+
+                badgeB.className = "ratio-badge badge-lower";
+                badgeB.innerHTML = '<i class="fa fa-arrow-down"></i> Lebih Encer';
+                badgeB.style.display = 'inline-block';
+            } else {
+                kesimpulan.innerHTML = `Gelas B <strong>LEBIH PEKAT</strong>. Secara relatif, proporsi kopi di Gelas B lebih besar dari Gelas A.`;
+                
+                // Indikator Gelas B Lebih Pekat
+                badgeA.className = "ratio-badge badge-lower";
+                badgeA.innerHTML = '<i class="fa fa-arrow-down"></i> Lebih Encer';
+                badgeA.style.display = 'inline-block';
+
+                badgeB.className = "ratio-badge badge-higher";
+                badgeB.innerHTML = '<i class="fa fa-arrow-up"></i> Lebih Pekat';
+                badgeB.style.display = 'inline-block';
+            }
+        }
+    </script>             
+</body>
+</html>
